@@ -19,12 +19,7 @@ samtools index $R1.sam.bam.sort.bam -@ $t
 
 rm $R1.sam $R1.sam.bam 
 
-featureCounts -T $t -p -t exon -g gene_id  -a $gtf -o $R1.count.txt $R1.sam.bam.sort.bam; done
+featureCounts -T $t -p -t exon -g gene_id  -a $gtf -o $id.count.txt $R1.sam.bam.sort.bam; done
 
 done
-mkdir count
-mv *.count.txt count
-mv ~/biotools/RNA-seq/*.csv count
-cd count
-Rscript ~/biotoosl/RNA-seq/RNA_seq_merge.R
 
