@@ -24,7 +24,7 @@ featureCounts -T $t -p -t exon -g gene_id  -a $gtf -o $R1.count.txt $R1.sam.bam.
 done
 mkdir count
 mv *.count.txt count
-mv ~/biotools/RNA-seq/*.csv count
+cp ~/biotools/RNA-seq/*.csv count
 cd count
 Rscript ~/biotoosl/RNA-seq/RNA_seq_merge.R
 
