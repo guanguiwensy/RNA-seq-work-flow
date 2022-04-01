@@ -26,5 +26,5 @@ mkdir count
 mv *.count.txt count
 cp ~/biotools/RNA-seq/*.csv count
 cd count
-Rscript ~/biotoosl/RNA-seq/RNA_seq_merge.R
+Rscript ~/biotools/RNA-seq/RNA_seq_merge.R
 
