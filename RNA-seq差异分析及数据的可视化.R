@@ -1,19 +1,12 @@
 #表达数据导入及参数设置
 
-rt=read.table("merge.txt",sep="\t",header=T,check.names=F)#改为自己的文件
+rt=read.table("symbol.protein_coding.csv",sep="\t",header=T,check.names=F)#改为自己的文件
 #替换基因名
-gtf=read.table("human.csv",sep=",",stringsAsFactors = F,header=T)
-gtf=gtf[,c(1,4)]
-
-rt=merge(gtf,rt,by.x="Gene.stable.ID",by.y="gene",all.y=T)
-rt=rt[-c(1:5),]
-rt=rt[,-1]
-write.table(rt,"symbol.txt",sep="\t",row.names = F)
 
 #数据准备
-library(org.Mm.eg.db)#根据需要加载对应的物种注释信息包 library(org.Hs.eg.db)
-species="mmu" #####"hsa"
-org.db="org.Mm.eg.db"#注明物种及注释包 org.db="org.Hs.eg.db"
+library(org.Hs.eg.db)#根据需要加载对应的物种注释信息包 library(org.Mm.eg.db)
+species="hsa" #####"mmu"
+org.db="org.Hs.eg.db"#注明物种及注释包 org.db="org.Hs.eg.db"
 group1=c(rep("groupA",3))
 group2=c(rep("groupB",3))#设置分组的名称，注意：输出结果中 logFC>0 是指group2比group1表达水平高
 group=c(group1,group2)#设置rt中每一列属于group1还是group2
@@ -33,18 +26,7 @@ data=data[rowMeans(data)>1,] #取平均水平大于1的那些基因
 foldChange=1
 padj=0.05
 
-#pca
-library(factoextra)
-rt <- rt[apply(rt, 1, var)!=0,]
-mads <- apply(rt, 1, mad)
-rt <- rt[rev(order(mads)),]
-rt_t <- t(rt)
-variableL <- ncol(rt_t)
-pca <- prcomp(rt_t[,1:variableL], scale=T)
-names<-colnames(rt)
-pdf("pca.pdf",width = 1000,height = 1000)
-fviz_pca_ind(pca, col.ind=names, mean.point=F, addEllipses = T, legend.title="Groups")
-dev.off()
+
 
 #设置模型
 design <- model.matrix(~group)
@@ -62,34 +44,44 @@ allDiff=ordered_tags$table
 allDiff=allDiff[is.na(allDiff$FDR)==FALSE,]
 diff=allDiff
 newData=y$pseudo.counts
-dir.create("差异表达基因")
-dir.create("归一化表达")
-write.table(diff,file="差异表达基因/edgerOut.xls",sep="\t",quote=F)
+dir.create("different_expression_gene")
+write.table(diff,file="different_expression_gene/edgerOut.xls",sep="\t",quote=F)
 diffSig = diff[(diff$FDR < padj & (diff$logFC>foldChange | diff$logFC<(-foldChange))),]
-write.table(diffSig, file="差异表达基因/diffSig.xls",sep="\t",quote=F)
+write.table(diffSig, file="different_expression_gene/diffSig.xls",sep="\t",quote=F)
 diffUp = diff[(diff$FDR < padj & (diff$logFC>foldChange)),]
-write.table(diffUp, file="差异表达基因/up.xls",sep="\t",quote=F)
+write.table(diffUp, file="different_expression_gene/up.xls",sep="\t",quote=F)
 diffDown = diff[(diff$FDR < padj & (diff$logFC<(-foldChange))),]
-write.table(diffDown, file="差异表达基因/down.xls",sep="\t",quote=F)
+write.table(diffDown, file="different_expression_gene/down.xls",sep="\t",quote=F)
 normalizeExp=rbind(id=colnames(newData),newData)
-write.table(normalizeExp,file="normalizeExp.txt",sep="\t",quote=F,col.names=F)   
-#输出所有基因校正后的表达值（normalizeExp.txt）
+write.table(normalizeExp,file="different_expression_gene/normalizeExp.txt",sep="\t",quote=F,col.names=F)   
+
 diffExp=rbind(id=colnames(newData),newData[rownames(diffSig),])
-write.table(diffExp,file="差异表达基因/diffmRNAExp.txt",sep="\t",quote=F,col.names=F)         #输出差异基因校正后的表达值（diffmRNAExp.txt）
+write.table(diffExp,file="different_expression_gene/diffmRNAExp.txt",sep="\t",quote=F,col.names=F)         #输出差异基因校正后的表达值（diffmRNAExp.txt）
 
 
 #火山图
-pdf(file="vol.pdf")
-allDiff$FDR[-log10(allDiff$FDR) >= 100] <- 10^-100
-xMax=max(-log10(allDiff$FDR))+1
-yMax=12
-plot(-log10(allDiff$FDR), allDiff$logFC, xlab="-log10(FDR)",ylab="logFC",
-     main="Volcano", xlim=c(0,xMax),ylim=c(-yMax,yMax),yaxs="i",pch=20, cex=0.4)
-diffSub=allDiff[allDiff$FDR<padj & allDiff$logFC>foldChange,]
-points(-log10(diffSub$FDR), diffSub$logFC, pch=20, col="red",cex=0.4)
-diffSub=allDiff[allDiff$FDR<padj & allDiff$logFC<(-foldChange),]
-points(-log10(diffSub$FDR), diffSub$logFC, pch=20, col="green",cex=0.4)
-abline(h=0,lty=2,lwd=3)
+
+library(tinyarray)
+pdf(file="different_expression_gene/vol.pdf")
+allDiff2 <- allDiff
+allDiff2[,5] <- allDiff2[,4]
+draw_volcano(allDiff2,
+             pkg = 2,
+             logFC_cutoff = foldChange,
+             pvalue_cutoff = 0.05,
+             adjust = T
+)
+dev.off()
+
+png(file="different_expression_gene/vol.png")
+allDiff2 <- allDiff
+allDiff2[,5] <- allDiff2[,4]
+draw_volcano(allDiff2,
+             pkg = 2,
+             logFC_cutoff = foldChange,
+             pvalue_cutoff = 0.05,
+             adjust = T
+)
 dev.off()
 
 #热图
@@ -97,12 +89,33 @@ df <- newData[rownames(diffSig),]
 col <- colorRampPalette(c("blue", "white", "red"))(256)
 patient_class=RowSideColors =  c(rep("purple", length(group1)), rep("orange", length(group2)))
  #gene_class=rep(c("blue","pink"),each=16)
-pdf("heatmap.pdf")
+png("different_expression_gene/heatmap.pdf")
 heatmap(df[rev(rownames(df)),],
         col = col,
         Rowv = NA,
         Colv = NA,
         ColSideColors = patient_class)
+dev.off()
+
+png("different_expression_gene/heatmap.png")
+heatmap(df[rev(rownames(df)),],
+        col = col,
+        Rowv = NA,
+        Colv = NA,
+        ColSideColors = patient_class)
+dev.off()
+
+
+
+
+
+#pca
+pdf("different_expression_gene/pca.pdf")
+draw_pca(newData, group_list=group)
+dev.off()
+
+png("different_expression_gene/pca.png")
+draw_pca(newData, group_list=group)
 dev.off()
 
 #富集分析 
@@ -126,22 +139,29 @@ dev.off()
     
     #Go富集及制图
       #GO富集
-      ALL<-enrichGO(OrgDb=org.db, gene = id,ont = "ALL",pvalueCutoff= 0.05,readable=T)
-      BP <-enrichGO(OrgDb=org.db, gene = id,ont = "BP", pvalueCutoff= 0.05,readable=T)
-      MF <-enrichGO(OrgDb=org.db, gene = id,ont = "MF", pvalueCutoff= 0.05,readable=T)
-      CC <-enrichGO(OrgDb=org.db, gene = id,ont = "CC", pvalueCutoff= 0.05,readable=T)
+      ALL<-enrichGO(OrgDb=org.db, gene = id,
+                    ont = "ALL",pvalueCutoff= 0.05,readable=T) 
+      BP <-enrichGO(OrgDb=org.db, gene = id,
+                    ont = "BP", pvalueCutoff= 0.05,readable=T) %>% simplify()
+      MF <-enrichGO(OrgDb=org.db, gene = id,
+                    ont = "MF", pvalueCutoff= 0.05,readable=T) %>% simplify()
+      CC <-enrichGO(OrgDb=org.db, gene = id,
+                    ont = "CC", pvalueCutoff= 0.05,readable=T) %>% simplify()
       #条形图
-      pdf(file="ALLGO_barplot.pdf", bg="transparent",width = 12,height = 10)
-      barplot(ALL, showCategory=20,title="ALLGO")
+      library(ggpubr)
+      BP_barplot <- barplot(BP, showCategory=5,title="BPGO")
+      MF_barplot <- barplot(MF, showCategory=5,title="MFGO")
+      CC_barplot <- barplot(CC, showCategory=5,title="CCGO")
+      
+      pdf(file="GO分析/GO_barplot.pdf", bg="transparent",width = 7,height = 13)
+      ggarrange(BP_barplot, MF_barplot,CC_barplot,ncol = 1,align = "v")
       dev.off()
-      pdf(file="BPGO_barplot.pdf", bg="transparent",width = 12,height = 10)
-      barplot(BP, showCategory=20,title="BPGO")
+      
+      png(file="GO分析/GO_barplot.png", bg="transparent",width = 480,height = 900)
+      ggarrange(BP_barplot, MF_barplot,CC_barplot,ncol = 1,align = "v")
       dev.off()
-      pdf(file="MFGO_barplot.pdf", bg="transparent",width = 12,height = 10)
-      barplot(MF, showCategory=20,title="MFGO")
-      dev.off()
-      pdf(file="CCGO_barplot.pdf", bg="transparent",width = 12,height = 10)
-      barplot(CC, showCategory=20,title="CCGO")
+
+      
       dev.off()
       #气球图
       pdf(file="ALLGO_dotplot.pdf", bg="transparent",width = 12,height = 10)
@@ -194,7 +214,7 @@ dev.off()
       dev.off()
       #输出结果
       ALLGO<-as.data.frame(ALL)
-      write.csv(ALLGO,"ALLgo.csv")
+      write.csv(ALLGO,"GO分析/ALLgo.csv")
     #go-gsea
       
     
