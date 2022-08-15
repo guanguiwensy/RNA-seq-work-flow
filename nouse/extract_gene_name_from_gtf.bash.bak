@@ -1,0 +1,8 @@
+#!/usr/bin/bash
+#Extract gene nanme from gtf file
+gtf=$1
+awk -v FS="\t" '{if($3=="gene") print $9}' $gtf > $gtf.anotion
+awk -v FS=" " '{if($5=="gene_name")print $2 $6 $10}' $gtf.anotion > $gtf.anotion2
+awk -v FS=";" '{print $1 $2 $3}' $gtf.anotion2 > $gtf.anotion3
+awk -v FS="\"" -v OFS="\t" '{print $2,$4,$6}' $gtf.anotion3 > $gtf.anotion
+rm $gtf.anotion2 $gtf.anotion3
