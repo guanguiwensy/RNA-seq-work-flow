@@ -1,0 +1,61 @@
+list <- dir(pattern="sort.bam.txt$") #Getting files' list that contain filename ending with "sort.bam.txt"
+
+#The script merge count files.
+count <- read.table(list[1],header=F,sep="\t")
+for (i in c(1:(length(list)-1))){
+  count_temp <- read.table(list[i+1],header=F,sep="\t")
+  count <- cbind(count,count_temp[,2])
+}
+count <- count[1:(nrow(count)-5),] #Remove the last 5 rows that are useless
+
+#Replace row names
+rownames(count) <- count[,1] 
+count <- count[,-1]
+
+#Replace colname names
+colnames(count) <- list
+
+#Replace colname names using sample list file.
+sample_list <- read.table("sample_list",sep = " ", header = F)
+count <- count[,sample_list[,1]]
+colnames(count) <- sample_list[,2]
+
+exons_gene_lens=read.table("exons_gene_lens.txt",sep="\t",header = F)
+rownames(exons_gene_lens) <- exons_gene_lens[,1]
+exons_gene_lens <- exons_gene_lens[rownames(count),] #Order exons_gene_lens by rownames of count.
+length <- c(exons_gene_lens[,2]) #Assign the gene length value to the length variable.
+
+#Assign the total reads of sample to sum_reads variable, 
+#and please understand the usage of apply carefully
+sum_reads <- apply(count,2,sum) 
+
+FPKM <- count
+#Data are corrected for gene length by row.
+for (i in c(1:nrow(FPKM)))
+{
+  FPKM[i,] <- sapply(FPKM[i,],function(x) x/length[i])
+}
+
+#Sample are corrected for total reads by col.
+for (i in c(1:ncol(FPKM)))
+{
+  FPKM[,i] <- sapply(FPKM[,i],function(x) x/sum_reads[i]*10^9)
+}
+
+#Replace gene names
+replace_name <- function(data){
+   data[,ncol(data)] <- rownames(data)
+   colnames(data)[ncol(data)] <- "gene"
+   symbol <- read.table("gene_anotion.csv",sep=",",stringsAsFactors = F,header=T)
+   symbol <- symbol[,c(1,4)]
+   data <- merge(symbol,data,by.x="Gene.stable.ID",by.y="gene",all.y=T)
+   return(data)
+}
+
+FPKM <- replace_name(FPKM)
+count <- replace_name(count)
+
+#Save the FPKM results, separated by tabs.
+write.table(FPKM,"FPKM.txt",sep="\t",row.name = F, quote = F)
+#Save raw counts results, separated by tabs.
+write.table(count,"count.txt",sep="\t",row.name = F, quote = F)
