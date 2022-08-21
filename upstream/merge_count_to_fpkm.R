@@ -44,11 +44,12 @@ for (i in c(1:ncol(FPKM)))
 
 #Replace gene names
 replace_name <- function(data){
-   data[,ncol(data)] <- rownames(data)
+   data[,ncol(data)+1] <- rownames(data)
    colnames(data)[ncol(data)] <- "gene"
-   symbol <- read.table("gene_anotion.csv",sep=",",stringsAsFactors = F,header=T)
-   symbol <- symbol[,c(1,4)]
-   data <- merge(symbol,data,by.x="Gene.stable.ID",by.y="gene",all.y=T)
+   symbol <- read.table("gene_anotion.txt",sep="\t",stringsAsFactors = F,header=F)
+   symbol <- symbol[,c(1,2)]
+   colnames(symbol)=c("gene","name")
+   data <- merge(symbol,data,by.x="gene",by="gene")
    return(data)
 }
 
@@ -59,3 +60,4 @@ count <- replace_name(count)
 write.table(FPKM,"FPKM.txt",sep="\t",row.name = F, quote = F)
 #Save raw counts results, separated by tabs.
 write.table(count,"count.txt",sep="\t",row.name = F, quote = F)
+
