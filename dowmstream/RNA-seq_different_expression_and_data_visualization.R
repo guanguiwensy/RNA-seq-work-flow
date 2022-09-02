@@ -194,9 +194,9 @@ group_all
   #go analysis plot
   
   #barplot
-  BP_barplot <- barplot(BP, showCategory=5,title="BPGO")
-  MF_barplot <- barplot(MF, showCategory=5,title="MFGO")
-  CC_barplot <- barplot(CC, showCategory=5,title="CCGO")
+  BP_barplot <- barplot(BP, showCategory=5,title="BPGO",orderBy ="p.adjust")
+  MF_barplot <- barplot(MF, showCategory=5,title="MFGO",orderBy ="p.adjust")
+  CC_barplot <- barplot(CC, showCategory=5,title="CCGO",orderBy ="p.adjust")
   
   pdf(file=paste0(name,"/GO_analysis/BP_barplot.pdf"), bg="transparent",width = 7,height = 7)
   BP_barplot
