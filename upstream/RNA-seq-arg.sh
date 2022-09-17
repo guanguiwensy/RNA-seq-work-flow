@@ -52,6 +52,6 @@ else
 done
 #Since htseq-count not supports muti-threads, we use GNU-parallel to solve this issue.
 ls *.sort.bam | parallel -j $threads htseq-count -f bam -i gene_id -m union {} $gtf '>' {}.txt
-Rscript exon_length.R
+Rscript exon_length.R $gtf
 Rscript merge_count_to_fpkm.R
 fi
